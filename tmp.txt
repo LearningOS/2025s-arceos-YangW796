@@ -1,6 +1,26 @@
     [92;1mCreating[0m FAT32 disk image "disk.img" ...
 mkfs.fat 4.2 (2021-01-31)
 Has color
+Boot HART MIDELEG         : 0x0000000000001666
+Boot HART MEDELEG         : 0x0000000000f0b509
+
+       d8888                            .d88888b.   .d8888b.
+      d88888                           d88P" "Y88b d88P  Y88b
+     d88P888                           888     888 Y88b.
+    d88P 888 888d888  .d8888b  .d88b.  888     888  "Y888b.
+   d88P  888 888P"   d88P"    d8P  Y8b 888     888     "Y88b.
+  d88P   888 888     888      88888888 888     888       "888
+ d8888888888 888     Y88b.    Y8b.     Y88b. .d88P Y88b  d88P
+d88P     888 888      "Y8888P  "Y8888   "Y88888P"   "Y8888P"
+
+arch = riscv64
+platform = riscv64-qemu-virt
+target = riscv64gc-unknown-none-elf
+smp = 1
+build_mode = release
+log_level = warn
+
+[31m[WithColor]: Hello, Arceos![0m
 Has Hello, Arceos!
 print_with_color pass
     [92;1mCreating[0m FAT32 disk image "disk.img" ...
@@ -11,7 +31,7 @@ mkfs.fat 4.2 (2021-01-31)
 alt_alloc default
     [92;1mCreating[0m FAT32 disk image "disk.img" ...
 mkfs.fat 4.2 (2021-01-31)
-support_hashmap default
+support_hashmap pass
     [92;1mCreating[0m FAT32 disk image "disk.img" ...
 mkfs.fat 4.2 (2021-01-31)
 make[1]: Entering directory '/home/wy/Document/2025s-arceos-YangW796/arceos/payload'
@@ -70,4 +90,4 @@ make[2]: Leaving directory '/home/wy/Document/2025s-arceos-YangW796/arceos/paylo
 make[1]: Leaving directory '/home/wy/Document/2025s-arceos-YangW796/arceos/payload'
 Write file 'payload/skernel2/skernel2' into disk.img
 simple_hv default
-100
+200

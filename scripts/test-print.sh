@@ -19,6 +19,7 @@ has_text=false
 
 if [[ "$context" == *$'\x1b['* ]]; then
     echo "Has color"
+    echo "$context"
     has_color=true
 
     sed_context=$(echo "$context" | sed 's/\x1b\[[0-9;]*m//g')
