@@ -8,6 +8,10 @@ use axtask::current;
 use axtask::TaskExtRef;
 use axhal::paging::MappingFlags;
 use arceos_posix_api as api;
+use memory_addr::VirtAddr;
+use axerrno::AxError;
+use axalloc::global_allocator;
+use axhal::mem::{PAGE_SIZE_4K, phys_to_virt};
 
 const SYS_IOCTL: usize = 29;
 const SYS_OPENAT: usize = 56;
@@ -140,7 +144,55 @@ fn sys_mmap(
     fd: i32,
     _offset: isize,
 ) -> isize {
-    unimplemented!("no sys_mmap!");
+    let curr = current();
+    let mut aspace =curr.task_ext().aspace.lock();
+
+    //如果 length == 0 直接返回错误
+    if length == 0 {
+        return AxError::InvalidInput as isize;
+    }
+    let aligned_length = (length + PAGE_SIZE_4K - 1) & !(PAGE_SIZE_4K - 1);
+    let hint_vaddr = VirtAddr::from(addr as usize);
+    let prot = MmapProt::from_bits_truncate(prot);
+    let _flags = MmapFlags::from_bits_truncate(flags);
+    let mapping_flags = MappingFlags::from(prot);
+    let mapped_addr:VirtAddr= if addr.is_null() {
+        //如果 hint 是 null，自动找空闲区域
+        let limit = aspace.va_range;
+        match aspace.find_free_area(aspace.va_range.start, aligned_length, limit) {
+            Some(free_addr) => free_addr,
+            None => return AxError::NoMemory as isize,
+        }
+    } else {
+        // 用户给了 hint 地址，检查是否合法
+        if !aspace.contains_range(hint_vaddr, aligned_length) {
+            return AxError::InvalidInput as isize;
+        }
+        hint_vaddr
+    };
+    if let Err(e) = aspace.map_alloc(mapped_addr, aligned_length, mapping_flags, true) {
+        return e as isize;
+    }
+    let (paddr, _, _) = aspace
+        .page_table()
+        .query(mapped_addr)
+        .unwrap_or_else(|_| panic!("Mapping failed for segment: {:#x}",mapped_addr));
+
+    let mut buf  = [0;64];
+    let f=api::get_file_like(fd as c_int);
+    let read_len = f.unwrap().read(&mut buf);
+    
+    unsafe {
+        core::ptr::copy_nonoverlapping(
+            buf.as_ptr(),
+            phys_to_virt(paddr).as_mut_ptr(),
+            PAGE_SIZE_4K,
+        );
+    }
+    
+    mapped_addr.as_usize() as isize
+
+    
 }
 
 fn sys_openat(dfd: c_int, fname: *const c_char, flags: c_int, mode: api::ctypes::mode_t) -> isize {
