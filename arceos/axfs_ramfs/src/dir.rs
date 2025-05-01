@@ -165,6 +165,48 @@ impl VfsNodeOps for DirNode {
         }
     }
 
+    fn rename(&self, src_path: &str, dst_path: &str) -> VfsResult {
+        let (src_name, src_rest) = split_path(src_path);
+        let (dst_name, dst_rest) = split_path(dst_path);
+        log::debug!("rename2 from '{}' to '{}'", src_name,dst_name);
+        log::debug!("rename3 from '{}' to '{}'", src_rest.unwrap(),dst_rest.unwrap());
+    
+        match (src_rest, dst_rest) {
+            (None, None) => {
+                // 都是相对当前目录的直接子项
+                log::debug!("rename21 from '{}' to '{}'", src_name,dst_name);
+                let mut children = self.children.write();
+    
+                // 获取源节点
+                let node = children.get(src_name).ok_or(VfsError::NotFound)?.clone();
+    
+                // 目标不能已存在
+                if children.contains_key(dst_name) {
+                    return Err(VfsError::AlreadyExists);
+                }
+    
+                // 插入新的名字
+                children.insert(String::from(dst_name), node);
+                // 移除旧名字
+                children.remove(src_name);
+                Ok(())
+            }
+            _ => {
+                // 需要递归处理
+                let (src_dir_name, src_tail) = (src_name, src_rest.unwrap_or(""));
+                let (dst_dir_name, dst_tail) = (dst_name, dst_rest.unwrap_or(""));
+    
+                let src_dir = self.children.read().get(src_dir_name).cloned().ok_or(VfsError::NotFound)?;
+    
+                let dst_dir = self.children.read().get(dst_dir_name).cloned().ok_or(VfsError::NotFound)?;
+    
+                src_dir.rename(src_tail, dst_tail)
+            }
+        }
+    }
+    
+
+
     axfs_vfs::impl_vfs_dir_default! {}
 }
 
